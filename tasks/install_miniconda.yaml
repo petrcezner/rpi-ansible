@@ -1,0 +1,48 @@
+- name: Install Miniconda3 on Raspberry Pi4
+  hosts: serv
+  become: true
+  vars:
+    vm_remote_home: /home/petr
+    vm_remote_user: petr
+  tasks:
+    - name: Check if Miniconda is installed
+      stat:
+        path: "{{ vm_remote_home }}/miniconda3/bin/conda"
+      register: conda_installed
+
+    - name: Install Miniconda3 - download
+      get_url:
+        url: https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh
+        dest: /tmp/Miniconda3.sh
+        mode: '0755'
+      register: miniconda_script
+      when: conda_installed.stat.exists == false
+
+    - name: Install Miniconda3 - run installer
+      shell: bash /tmp/Miniconda3.sh -b -p "{{ vm_remote_home }}/miniconda3"
+      args:
+        creates: "{{ vm_remote_home }}/miniconda3"
+      when: conda_installed.stat.exists == false
+
+    - name: Remove the Miniconda3 installer
+      file:
+        state: absent
+        path: /tmp/Miniconda3.sh
+      when: conda_installed.stat.exists == false
+
+    - name: Add miniconda config to .bashrc
+      lineinfile:
+        path: "{{vm_remote_home }}/.bashrc"
+        line: ". ~/miniconda3/etc/profile.d/conda.sh"
+      when: conda_installed.stat.exists == false
+
+    - name: Add conda activate to .bashrc
+      lineinfile:
+        path: "{{vm_remote_home }}/.bashrc"
+        line: "conda activate"
+      when: conda_installed.stat.exists == false
+
+    - name: Reload .bashrc to update environment variables
+      shell: source {{ vm_remote_home }}/.bashrc
+      args:
+        executable: /bin/bash

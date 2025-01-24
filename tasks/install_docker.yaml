@@ -1,0 +1,60 @@
+- name: Install Docker and Docker Compose V2 on Raspberry Pi4
+  hosts: serv
+  become: true
+  vars:
+    pkgstoinstall: [ libffi-dev, libssl-dev, python3, python3-pip ]
+    vm_remote_home: /home/petr
+    vm_remote_user: petr
+  tasks:
+    - name: Apt update
+      apt:
+        update_cache: true
+        upgrade: yes
+      changed_when: false
+
+    - name: Check if Docker is installed
+      command: docker --version
+      register: docker_installed
+      failed_when: false
+      changed_when: false
+
+    - name: Install a list of packages
+      apt:
+        name: "{{ pkgstoinstall }}"
+        update_cache: yes
+      when: docker_installed.rc != 0
+
+    - name: Remove python-configparser package
+      apt:
+        name: python-configparser
+        state: absent
+      when: docker_installed.rc != 0
+
+    - name: Get Docker convenience script
+      shell: curl -fsSL https://get.docker.com -o get-docker.sh
+      args:
+        creates: /home/{{ vm_remote_user }}/get-docker.sh
+      when: docker_installed.rc != 0
+
+    - name: Install Docker
+      shell: sh /home/{{ vm_remote_user }}/get-docker.sh
+      args:
+        creates: /usr/bin/docker
+      when: docker_installed.rc != 0
+
+    - name: Make pi user execute docker commands
+      shell: usermod -aG docker {{ vm_remote_user }}
+      when: docker_installed.rc != 0
+
+    - name: Install Docker Compose V2
+      get_url:
+        url: https://github.com/docker/compose/releases/download/v2.11.2/docker-compose-linux-armv7
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+      when: docker_installed.rc != 0
+
+    - name: Remove the Docker installer
+      file:
+        state: absent
+        path: "{{ vm_remote_home }}/get-docker.sh"
+      when: docker_installed.rc != 0
