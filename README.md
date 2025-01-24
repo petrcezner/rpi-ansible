@@ -7,7 +7,7 @@ Install Ansible and related tools:
 pip install ansible ansible-lint
 ```
 
-## Raspberry Pi 4 Setup with Ubuntu 22.04 Server
+## Raspberry Pi 4 Setup
 1. **Install Ubuntu 22.04 Server:**
    - Download the Raspberry Pi image from the official Ubuntu website.
    - Flash the image to an SD card using tools like `Raspberry Pi Imager` or `balenaEtcher`.
